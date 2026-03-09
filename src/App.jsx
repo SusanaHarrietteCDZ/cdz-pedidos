@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { initializeApp } from "firebase/app";
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "firebase/auth";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { getFirestore, collection, addDoc, updateDoc, doc, onSnapshot, query, orderBy, where, serverTimestamp, getDoc, setDoc } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import * as XLSX from "xlsx";
@@ -18,6 +18,8 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
+const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({ prompt: "select_account", hd: "crucedelzorro.com" });
 
 // ─── Usuarios / Vendedores ──────────────────────────────────────────
 const VENDEDORES = {
@@ -101,12 +103,35 @@ function Login() {
   const [pass, setPass] = useState("");
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const doLogin = async () => {
     setErr(""); setLoading(true);
     try { await signInWithEmailAndPassword(auth, email, pass); }
     catch { setErr("Email o contraseña incorrectos."); }
     finally { setLoading(false); }
+  };
+
+  const doGoogleLogin = async () => {
+    setErr(""); setGoogleLoading(true);
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      if (!result.user.email?.endsWith("@crucedelzorro.com")) {
+        await signOut(auth);
+        setErr("Solo se permiten cuentas @crucedelzorro.com");
+      }
+    }
+    catch (e) {
+      if (e.code === "auth/popup-closed-by-user" || e.code === "auth/cancelled-popup-request") {
+      } else if (e.code === "auth/popup-blocked") {
+        setErr("El navegador bloqueó la ventana emergente. Permití los popups e intentá de nuevo.");
+      } else if (e.code === "auth/account-exists-with-different-credential") {
+        setErr("Ya existe una cuenta con este email usando otro método de inicio de sesión.");
+      } else {
+        setErr("Error al iniciar sesión con Google.");
+      }
+    }
+    finally { setGoogleLoading(false); }
   };
 
   return (
@@ -125,8 +150,31 @@ function Login() {
           <input style={inp} type="password" value={pass} onChange={e => setPass(e.target.value)} onKeyDown={e => e.key === "Enter" && doLogin()} />
         </div>
         {err && <div style={{ color: C.danger, fontSize: 13, marginBottom: 16, padding: "10px 14px", background: "rgba(220,53,69,0.08)", borderRadius: 8, border: `1px solid rgba(220,53,69,0.25)` }}>{err}</div>}
-        <button style={{ ...btn("primary"), width: "100%", padding: 15, fontSize: 16 }} onClick={doLogin} disabled={loading}>
+        <button style={{ ...btn("primary"), width: "100%", padding: 15, fontSize: 16 }} onClick={doLogin} disabled={loading || googleLoading}>
           {loading ? "Ingresando..." : "Ingresar"}
+        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "20px 0" }}>
+          <div style={{ flex: 1, height: 1, background: "#333" }} />
+          <span style={{ fontSize: 12, color: C.textMuted, textTransform: "uppercase", letterSpacing: 1 }}>o</span>
+          <div style={{ flex: 1, height: 1, background: "#333" }} />
+        </div>
+        <button
+          style={{
+            width: "100%", padding: 14, borderRadius: 10, border: "1px solid #333",
+            background: "#1a1a1a", color: C.text, fontSize: 15, fontWeight: 600,
+            cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+            transition: "all 0.18s",
+          }}
+          onClick={doGoogleLogin}
+          disabled={loading || googleLoading}
+        >
+          <svg width="20" height="20" viewBox="0 0 48 48">
+            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+            <path fill="#FBBC05" d="M10.53 28.59a14.5 14.5 0 0 1 0-9.18l-7.98-6.19a24.01 24.01 0 0 0 0 21.56l7.98-6.19z"/>
+            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+          </svg>
+          {googleLoading ? "Ingresando..." : "Continuar con Google"}
         </button>
       </div>
     </div>

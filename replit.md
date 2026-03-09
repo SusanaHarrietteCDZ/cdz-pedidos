@@ -22,7 +22,7 @@ public/             — Static assets
 
 ## Key Features
 
-- Vendor login restricted to @crucedelzorro.com email accounts (Firebase Auth)
+- Vendor login via email/password or Google Sign-In, restricted to @crucedelzorro.com accounts (Firebase Auth)
 - Order entry form (FormVendedor) with product catalog and payment method selection
 - Admin panel (PanelAdmin) with real-time Firestore updates, filtering, and status management
 - Excel export via `xlsx` library
