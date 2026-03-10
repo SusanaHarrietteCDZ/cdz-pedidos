@@ -33,24 +33,20 @@ const VENDEDORES = {
 };
 
 // ─── Catálogo ───────────────────────────────────────────────────────
-const PRODUCTOS = [
-  { codigo: "CDZ-B",    nombre: "Cruce del Zorro - Blend" },
-  { codigo: "CDZ-P",    nombre: "Cruce del Zorro - Petit Verdot" },
-  { codigo: "LC-B",     nombre: "La Curiosa - Blend" },
-  { codigo: "LC-C",     nombre: "La Curiosa - Cabernet" },
-  { codigo: "LC-M",     nombre: "La Curiosa - Malbec" },
-  { codigo: "LC-T",     nombre: "La Curiosa - Tannat" },
-  { codigo: "LC-TRI",   nombre: "La Curiosa - Tri" },
-  { codigo: "PORF-B",   nombre: "Porfiado - Blend" },
-  { codigo: "PORF-CF",  nombre: "Porfiado - Cabernet Franc" },
-  { codigo: "PORF-T",   nombre: "Porfiado - Tannat" },
-  { codigo: "LVD",      nombre: "La Viuda Descalza" },
-  { codigo: "LVD-H",    nombre: "La Viuda Húngara" },
-  { codigo: "LVD-R",    nombre: "La Viuda Reposada" },
-  { codigo: "GE-3en1",  nombre: "Gato Encerrado - Threepack" },
-  { codigo: "BLANC",    nombre: "Blancos - Blanc di Blancs" },
-  { codigo: "VB-2en1",  nombre: "Blancos - 2en1" },
-];
+const LINEAS_PRODUCTO = ["Cruce del Zorro", "Gato Encerrado", "La Curiosa", "La Viuda Descalza", "Porfiado", "Blanco"];
+
+const CATALOGO = {
+  "Cruce del Zorro":     [{ codigo: "CDZ-B",   cepa: "Blend" }, { codigo: "CDZ-P",   cepa: "Pettit Verdot" }],
+  "Gato Encerrado":      [{ codigo: "GE-3en1", cepa: "Theepack" }],
+  "La Curiosa":          [{ codigo: "LC-T",    cepa: "Tannat" }, { codigo: "LC-B",  cepa: "Blend" }, { codigo: "LC-M", cepa: "Malbec" }, { codigo: "LC-TRI", cepa: "Trivarietal" }, { codigo: "LC-C", cepa: "Cabernet Sauvignon" }],
+  "La Viuda Descalza":   [{ codigo: "LVD",     cepa: "LVD" }, { codigo: "LVD-H",  cepa: "LVD Húngara" }, { codigo: "LVD-R", cepa: "LVD Reposada" }],
+  "Porfiado":            [{ codigo: "PORF-B",  cepa: "Blend" }, { codigo: "PORF-CF", cepa: "Cabernet Franc" }, { codigo: "PORF-T", cepa: "Tannat" }],
+  "Blanco":              [{ codigo: "VB-2en1", cepa: "2 en 1" }, { codigo: "BLANC",  cepa: "Blanc di Blancs" }],
+};
+
+const PRODUCTOS = Object.entries(CATALOGO).flatMap(([linea, prods]) =>
+  prods.map(p => ({ codigo: p.codigo, nombre: `${linea} - ${p.cepa}`, linea, cepa: p.cepa }))
+);
 
 const CANALES = ["DTC", "Distribuidor", "Licorería", "Tienda", "Mayorista", "BAJAS"];
 const TIPOS_BAJA = ["Bonificación", "Muestra", "Degustación"];
@@ -58,7 +54,7 @@ const FORMAS_PAGO = ["QR", "Efectivo", "Transferencia", "Tarjeta"];
 const ESTADOS_COBRO = ["Pago Realizado", "Por Cobrar", "Al Crédito"];
 const DIAS_CREDITO = ["10 días", "15 días", "20 días", "30 días", "45 días", "60 días"];
 
-const LINEA_VACIA = { codigo: "", cantidad: 1, precio: "" };
+const LINEA_VACIA = { linea: "", codigo: "", cantidad: 1, precio: "" };
 
 // ─── Colores ────────────────────────────────────────────────────────
 const C = {
@@ -186,7 +182,7 @@ function Login() {
 function FormVendedor({ user, vendedorNombre }) {
   const empty = () => ({
     nombreCliente: "", telefono: "", nit: "", razonSocial: "", canal: "", tipoBaja: "",
-    lineas: [{ ...LINEA_VACIA }, { ...LINEA_VACIA }, { ...LINEA_VACIA }, { ...LINEA_VACIA }, { ...LINEA_VACIA }],
+    lineas: [{ ...LINEA_VACIA }, { ...LINEA_VACIA }, { ...LINEA_VACIA }, { ...LINEA_VACIA }, { ...LINEA_VACIA }, { ...LINEA_VACIA }],
     formaPago: "", estadoCobro: "", diasCredito: "",
     direccion: "", entregarHoy: false, costoEnvio: "",
     diaEntrega: "", horarioEntrega: "",
@@ -203,7 +199,11 @@ function FormVendedor({ user, vendedorNombre }) {
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   const updateLinea = (i, k, v) => {
-    const ls = form.lineas.map((l, idx) => idx !== i ? l : { ...l, [k]: v });
+    const ls = form.lineas.map((l, idx) => {
+      if (idx !== i) return l;
+      if (k === "linea") return { ...l, linea: v, codigo: "" };
+      return { ...l, [k]: v };
+    });
     setForm(f => ({ ...f, lineas: ls }));
   };
 
@@ -381,24 +381,31 @@ function FormVendedor({ user, vendedorNombre }) {
         <div style={card}>
           <div style={section}>🍾 Productos</div>
           {/* Headers */}
-          <div style={{ display: "grid", gridTemplateColumns: "2fr 60px 90px 80px", gap: 8, marginBottom: 8 }}>
-            {["Producto", "Cant.", "Precio", "Sub"].map(h => (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 55px 80px 70px", gap: 6, marginBottom: 8 }}>
+            {["Línea", "Cepa/Prod.", "Cant.", "Precio", "Sub"].map(h => (
               <div key={h} style={{ fontSize: 10, color: C.textMuted, textTransform: "uppercase", letterSpacing: 0.8, fontWeight: 600 }}>{h}</div>
             ))}
           </div>
-          {form.lineas.map((l, i) => (
-            <div key={i} style={{ display: "grid", gridTemplateColumns: "2fr 60px 90px 80px", gap: 8, marginBottom: 10, alignItems: "center" }}>
-              <select style={{ ...sel, fontSize: 13, padding: "10px 10px" }} value={l.codigo} onChange={e => updateLinea(i, "codigo", e.target.value)}>
-                <option value="">— Producto —</option>
-                {PRODUCTOS.map(p => <option key={p.codigo} value={p.codigo}>{p.codigo} · {p.nombre}</option>)}
-              </select>
-              <input style={{ ...inp, padding: "10px 8px", textAlign: "center", fontSize: 14 }} type="number" min={1} max={999} value={l.cantidad} onChange={e => updateLinea(i, "cantidad", e.target.value)} />
-              <input style={{ ...inp, padding: "10px 8px", fontSize: 14 }} type="number" value={l.precio} onChange={e => updateLinea(i, "precio", e.target.value)} placeholder="0" />
-              <div style={{ color: subtotalLinea(l) > 0 ? C.gold : C.textMuted, fontWeight: 700, fontSize: 14, textAlign: "right" }}>
-                {subtotalLinea(l) > 0 ? `$${subtotalLinea(l).toLocaleString()}` : "—"}
+          {form.lineas.map((l, i) => {
+            const productosFiltrados = l.linea ? (CATALOGO[l.linea] || []) : [];
+            return (
+              <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 55px 80px 70px", gap: 6, marginBottom: 10, alignItems: "center" }}>
+                <select style={{ ...sel, fontSize: 12, padding: "10px 6px" }} value={l.linea || ""} onChange={e => updateLinea(i, "linea", e.target.value)}>
+                  <option value="">— Línea —</option>
+                  {LINEAS_PRODUCTO.map(lp => <option key={lp} value={lp}>{lp}</option>)}
+                </select>
+                <select style={{ ...sel, fontSize: 12, padding: "10px 6px", opacity: l.linea ? 1 : 0.4 }} value={l.codigo} onChange={e => updateLinea(i, "codigo", e.target.value)} disabled={!l.linea}>
+                  <option value="">— Cepa —</option>
+                  {productosFiltrados.map(p => <option key={p.codigo} value={p.codigo}>{p.cepa}</option>)}
+                </select>
+                <input style={{ ...inp, padding: "10px 6px", textAlign: "center", fontSize: 13 }} type="number" min={1} max={999} value={l.cantidad} onChange={e => updateLinea(i, "cantidad", e.target.value)} />
+                <input style={{ ...inp, padding: "10px 6px", fontSize: 13 }} type="number" value={l.precio} onChange={e => updateLinea(i, "precio", e.target.value)} placeholder="0" />
+                <div style={{ color: subtotalLinea(l) > 0 ? C.gold : C.textMuted, fontWeight: 700, fontSize: 13, textAlign: "right" }}>
+                  {subtotalLinea(l) > 0 ? `$${subtotalLinea(l).toLocaleString()}` : "—"}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
           <div style={{ borderTop: `1px solid #222`, paddingTop: 12, marginTop: 4, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ color: C.textMuted, fontSize: 13 }}>Subtotal productos</span>
             <span style={{ color: C.gold, fontWeight: 700, fontSize: 18 }}>${subtotalProductos.toLocaleString()}</span>
