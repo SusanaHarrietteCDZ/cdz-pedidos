@@ -24,6 +24,7 @@ public/             — Static assets
 
 - Vendor login via email/password or Google Sign-In, restricted to @crucedelzorro.com accounts (Firebase Auth)
 - Order entry form (FormVendedor) with product catalog and payment method selection
+- "BAJAS" channel option: disables payment/cobro fields, shows "Tipo de Baja de Producto" dropdown (Bonificación, Muestra, Degustación)
 - Admin panel (PanelAdmin) with real-time Firestore updates, filtering, and status management
 - Excel export via `xlsx` library
 - Image upload for receipts via Firebase Storage

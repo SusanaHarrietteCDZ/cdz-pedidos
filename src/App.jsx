@@ -52,7 +52,8 @@ const PRODUCTOS = [
   { codigo: "VB-2en1",  nombre: "Blancos - 2en1" },
 ];
 
-const CANALES = ["DTC", "Distribuidor", "Licorería", "Tienda", "Mayorista"];
+const CANALES = ["DTC", "Distribuidor", "Licorería", "Tienda", "Mayorista", "BAJAS"];
+const TIPOS_BAJA = ["Bonificación", "Muestra", "Degustación"];
 const FORMAS_PAGO = ["QR", "Efectivo", "Transferencia", "Tarjeta"];
 const ESTADOS_COBRO = ["Pago Realizado", "Por Cobrar", "Al Crédito"];
 const DIAS_CREDITO = ["10 días", "15 días", "20 días", "30 días", "45 días", "60 días"];
@@ -184,7 +185,7 @@ function Login() {
 // ─── FORMULARIO VENDEDOR ────────────────────────────────────────────
 function FormVendedor({ user, vendedorNombre }) {
   const empty = () => ({
-    nombreCliente: "", telefono: "", nit: "", razonSocial: "", canal: "",
+    nombreCliente: "", telefono: "", nit: "", razonSocial: "", canal: "", tipoBaja: "",
     lineas: [{ ...LINEA_VACIA }, { ...LINEA_VACIA }, { ...LINEA_VACIA }, { ...LINEA_VACIA }, { ...LINEA_VACIA }],
     formaPago: "", estadoCobro: "", diasCredito: "",
     direccion: "", entregarHoy: false, costoEnvio: "",
@@ -235,8 +236,12 @@ function FormVendedor({ user, vendedorNombre }) {
     if (!form.nombreCliente.trim()) return alert("Ingresá el nombre del cliente.");
     const lineasValidas = form.lineas.filter(l => l.codigo && (parseInt(l.cantidad) > 0) && l.precio !== "");
     if (!lineasValidas.length) return alert("Agregá al menos un producto.");
-    if (!form.formaPago) return alert("Seleccioná la forma de pago.");
-    if (!form.estadoCobro) return alert("Seleccioná el estado de cobro.");
+    if (form.canal === "BAJAS") {
+      if (!form.tipoBaja) return alert("Seleccioná el tipo de baja de producto.");
+    } else {
+      if (!form.formaPago) return alert("Seleccioná la forma de pago.");
+      if (!form.estadoCobro) return alert("Seleccioná el estado de cobro.");
+    }
     setSaving(true);
     try {
       await addDoc(collection(db, "pedidos"), {
@@ -247,13 +252,14 @@ function FormVendedor({ user, vendedorNombre }) {
         nit: form.nit,
         razonSocial: form.razonSocial,
         canal: form.canal,
+        tipoBaja: form.canal === "BAJAS" ? form.tipoBaja : "",
         lineas: lineasValidas,
         subtotalProductos,
         costoEnvio: costoEnvioNum,
         total,
-        formaPago: form.formaPago,
-        estadoCobro: form.estadoCobro,
-        diasCredito: form.estadoCobro === "Al Crédito" ? form.diasCredito : "",
+        formaPago: form.canal === "BAJAS" ? "" : form.formaPago,
+        estadoCobro: form.canal === "BAJAS" ? "" : form.estadoCobro,
+        diasCredito: form.estadoCobro === "Al Crédito" && form.canal !== "BAJAS" ? form.diasCredito : "",
         direccion: form.entregarHoy ? "ENTREGAR HOY" : form.direccion,
         entregarHoy: form.entregarHoy,
         diaEntrega: form.diaEntrega,
@@ -347,11 +353,28 @@ function FormVendedor({ user, vendedorNombre }) {
           </div>
           <div>
             <label style={lbl}>Canal *</label>
-            <select style={sel} value={form.canal} onChange={e => set("canal", e.target.value)}>
+            <select style={sel} value={form.canal} onChange={e => {
+              const val = e.target.value;
+              set("canal", val);
+              if (val === "BAJAS") {
+                setForm(f => ({ ...f, canal: val, formaPago: "", estadoCobro: "", diasCredito: "" }));
+              } else {
+                setForm(f => ({ ...f, canal: val, tipoBaja: "" }));
+              }
+            }}>
               <option value="">— Seleccionar canal —</option>
               {CANALES.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
+          {form.canal === "BAJAS" && (
+            <div style={{ marginTop: 12 }}>
+              <label style={lbl}>Tipo de Baja de Producto *</label>
+              <select style={sel} value={form.tipoBaja} onChange={e => set("tipoBaja", e.target.value)}>
+                <option value="">— Seleccionar tipo de baja —</option>
+                {TIPOS_BAJA.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+          )}
         </div>
 
         {/* PRODUCTOS */}
@@ -388,15 +411,15 @@ function FormVendedor({ user, vendedorNombre }) {
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
             <div>
-              <label style={lbl}>Forma de Pago *</label>
-              <select style={sel} value={form.formaPago} onChange={e => set("formaPago", e.target.value)}>
+              <label style={lbl}>Forma de Pago {form.canal !== "BAJAS" ? "*" : ""}</label>
+              <select style={{ ...sel, opacity: form.canal === "BAJAS" ? 0.4 : 1 }} value={form.formaPago} onChange={e => set("formaPago", e.target.value)} disabled={form.canal === "BAJAS"}>
                 <option value="">— Seleccionar —</option>
                 {FORMAS_PAGO.map(f => <option key={f} value={f}>{f}</option>)}
               </select>
             </div>
             <div>
-              <label style={lbl}>Estado de Cobro *</label>
-              <select style={sel} value={form.estadoCobro} onChange={e => set("estadoCobro", e.target.value)}>
+              <label style={lbl}>Estado de Cobro {form.canal !== "BAJAS" ? "*" : ""}</label>
+              <select style={{ ...sel, opacity: form.canal === "BAJAS" ? 0.4 : 1 }} value={form.estadoCobro} onChange={e => set("estadoCobro", e.target.value)} disabled={form.canal === "BAJAS"}>
                 <option value="">— Seleccionar —</option>
                 {ESTADOS_COBRO.map(e => <option key={e} value={e}>{e}</option>)}
               </select>
@@ -551,6 +574,7 @@ function PanelVendedor({ user, vendedorNombre }) {
       "NIT": p.nit || "",
       "Razón Social": p.razonSocial || "",
       "Canal": p.canal || "",
+      "Tipo de Baja": p.tipoBaja || "",
       "Productos": (p.lineas || []).map(l => `${l.codigo} x${l.cantidad} ($${l.precio})`).join(" | "),
       "Subtotal Prod.": p.subtotalProductos || 0,
       "Costo Envío": p.costoEnvio || 0,
@@ -674,10 +698,11 @@ function PanelVendedor({ user, vendedorNombre }) {
                       ["Cliente", p.nombreCliente],
                       ["Teléfono", p.telefono || "—"],
                       ["Canal", p.canal || "—"],
+                      ...(p.canal === "BAJAS" ? [["Tipo de Baja", p.tipoBaja || "—"]] : []),
                       ["NIT", p.nit || "—"],
                       ["Razón Social", p.razonSocial || "—"],
-                      ["Forma de Pago", p.formaPago || "—"],
-                      ["Estado Cobro", p.estadoCobro + (p.diasCredito ? ` (${p.diasCredito})` : "")],
+                      ...(p.canal !== "BAJAS" ? [["Forma de Pago", p.formaPago || "—"],
+                      ["Estado Cobro", p.estadoCobro + (p.diasCredito ? ` (${p.diasCredito})` : "")]] : []),
                       ["Dirección", p.direccion || "—"],
                       ["Día Entrega", p.diaEntrega || "—"],
                       ["Horario Entrega", p.horarioEntrega || "—"],
@@ -873,6 +898,7 @@ function PanelAdmin({ user }) {
       "NIT": p.nit || "",
       "Razón Social": p.razonSocial || "",
       "Canal": p.canal || "",
+      "Tipo de Baja": p.tipoBaja || "",
       "Productos": (p.lineas || []).map(l => `${l.codigo} x${l.cantidad} ($${l.precio})`).join(" | "),
       "Subtotal Prod.": p.subtotalProductos || 0,
       "Costo Envío": p.costoEnvio || 0,
@@ -1000,10 +1026,11 @@ function PanelAdmin({ user }) {
                         ["Vendedor", p.vendedorNombre],
                         ["Teléfono", p.telefono || "—"],
                         ["Canal", p.canal || "—"],
+                        ...(p.canal === "BAJAS" ? [["Tipo de Baja", p.tipoBaja || "—"]] : []),
                         ["NIT", p.nit || "—"],
                         ["Razón Social", p.razonSocial || "—"],
-                        ["Forma de Pago", p.formaPago || "—"],
-                        ["Estado Cobro", p.estadoCobro + (p.diasCredito ? ` (${p.diasCredito})` : "")],
+                        ...(p.canal !== "BAJAS" ? [["Forma de Pago", p.formaPago || "—"],
+                        ["Estado Cobro", p.estadoCobro + (p.diasCredito ? ` (${p.diasCredito})` : "")]] : []),
                         ["Dirección", p.direccion || "—"],
                         ["Día Entrega", p.diaEntrega || "—"],
                         ["Horario Entrega", p.horarioEntrega || "—"],
