@@ -1205,7 +1205,7 @@ function PanelAdmin({ user }) {
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                 <thead>
                   <tr>
-                    {["Fecha", "Vendedor", "Cliente", "Canal", "Productos", "Total", "Pago", "Estado", "Factura", "Entregado", "Fotos", "Acciones"].map(h => (
+                    {["Fecha", "Vendedor", "Cliente", "Canal", "Productos", "Total", "Pago", "Estado", "Aut. Baja", "Factura", "Entregado", "Fotos", "Acciones"].map(h => (
                       <th key={h} style={{ padding: "10px 12px", textAlign: "left", borderBottom: `1px solid #2a2a2a`, color: C.textMuted, fontSize: 10, textTransform: "uppercase", letterSpacing: 0.8, whiteSpace: "nowrap" }}>{h}</th>
                     ))}
                   </tr>
@@ -1228,6 +1228,15 @@ function PanelAdmin({ user }) {
                         <span style={{ fontSize: 11, color: p.estadoAdmin === "Completado" ? C.success : p.estadoAdmin === "Cancelado" ? C.danger : C.textMuted }}>
                           {p.estadoAdmin || "Pendiente"}
                         </span>
+                      </td>
+                      <td style={{ padding: "11px 12px" }}>
+                        {p.canal === "BAJAS" ? (
+                          <span style={{ fontSize: 11, fontWeight: 700, color: p.autorizarBaja === "Autorizada" ? C.success : p.autorizarBaja === "Rechazada" ? C.danger : C.textMuted }}>
+                            {p.autorizarBaja || "Pendiente"}
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: 11, color: C.textMuted }}>—</span>
+                        )}
                       </td>
                       <td style={{ padding: "11px 12px", color: p.nroFactura ? C.gold : C.textMuted, fontSize: 12, fontWeight: p.nroFactura ? 600 : 400 }}>
                         {p.nroFactura || "—"}
