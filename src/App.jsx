@@ -575,6 +575,7 @@ function PanelVendedor({ user, vendedorNombre }) {
       "Razón Social": p.razonSocial || "",
       "Canal": p.canal || "",
       "Tipo de Baja": p.tipoBaja || "",
+      "Autorizar Baja": p.autorizarBaja || "",
       "Productos": (p.lineas || []).map(l => `${l.codigo} x${l.cantidad} ($${l.precio})`).join(" | "),
       "Subtotal Prod.": p.subtotalProductos || 0,
       "Costo Envío": p.costoEnvio || 0,
@@ -698,7 +699,7 @@ function PanelVendedor({ user, vendedorNombre }) {
                       ["Cliente", p.nombreCliente],
                       ["Teléfono", p.telefono || "—"],
                       ["Canal", p.canal || "—"],
-                      ...(p.canal === "BAJAS" ? [["Tipo de Baja", p.tipoBaja || "—"]] : []),
+                      ...(p.canal === "BAJAS" ? [["Tipo de Baja", p.tipoBaja || "—"], ["Autorizar Baja", p.autorizarBaja || "Pendiente"]] : []),
                       ["NIT", p.nit || "—"],
                       ["Razón Social", p.razonSocial || "—"],
                       ...(p.canal !== "BAJAS" ? [["Forma de Pago", p.formaPago || "—"],
@@ -899,6 +900,7 @@ function PanelAdmin({ user }) {
       "Razón Social": p.razonSocial || "",
       "Canal": p.canal || "",
       "Tipo de Baja": p.tipoBaja || "",
+      "Autorizar Baja": p.autorizarBaja || "",
       "Productos": (p.lineas || []).map(l => `${l.codigo} x${l.cantidad} ($${l.precio})`).join(" | "),
       "Subtotal Prod.": p.subtotalProductos || 0,
       "Costo Envío": p.costoEnvio || 0,
@@ -1026,7 +1028,7 @@ function PanelAdmin({ user }) {
                         ["Vendedor", p.vendedorNombre],
                         ["Teléfono", p.telefono || "—"],
                         ["Canal", p.canal || "—"],
-                        ...(p.canal === "BAJAS" ? [["Tipo de Baja", p.tipoBaja || "—"]] : []),
+                        ...(p.canal === "BAJAS" ? [["Tipo de Baja", p.tipoBaja || "—"], ["Autorizar Baja", p.autorizarBaja || "Pendiente"]] : []),
                         ["NIT", p.nit || "—"],
                         ["Razón Social", p.razonSocial || "—"],
                         ...(p.canal !== "BAJAS" ? [["Forma de Pago", p.formaPago || "—"],
@@ -1110,6 +1112,32 @@ function PanelAdmin({ user }) {
                     {editando && (
                       <div style={{ borderTop: `1px solid #2a2a2a`, paddingTop: 20, marginTop: 4 }}>
                         <div style={{ fontSize: 13, fontWeight: 700, color: C.gold, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 16 }}>⚙️ Gestión Admin</div>
+
+                        {editando.canal === "BAJAS" && (() => {
+                          const original = pedidos.find(x => x.id === editando.id);
+                          const yaGestionada = !!(original && original.autorizarBaja);
+                          return (
+                            <div style={{ marginBottom: 14, background: "#1a1a1a", borderRadius: 10, padding: 14, border: `1px solid ${yaGestionada ? (original.autorizarBaja === "Autorizada" ? C.success : C.danger) : C.gold}` }}>
+                              <label style={{ ...lbl, fontSize: 12, color: C.gold }}>Autorizar Baja *</label>
+                              {yaGestionada ? (
+                                <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
+                                  <span style={{ fontSize: 18 }}>{original.autorizarBaja === "Autorizada" ? "✅" : "❌"}</span>
+                                  <span style={{ fontSize: 15, fontWeight: 700, color: original.autorizarBaja === "Autorizada" ? C.success : C.danger }}>
+                                    {original.autorizarBaja}
+                                  </span>
+                                  <span style={{ fontSize: 11, color: C.textMuted, marginLeft: 8 }}>(ya gestionada, no se puede modificar)</span>
+                                </div>
+                              ) : (
+                                <select style={sel} value={editando.autorizarBaja || ""} onChange={e => setEditando(x => ({ ...x, autorizarBaja: e.target.value }))}>
+                                  <option value="">— Seleccionar —</option>
+                                  <option value="Autorizada">Autorizada</option>
+                                  <option value="Rechazada">Rechazada</option>
+                                </select>
+                              )}
+                            </div>
+                          );
+                        })()}
+
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
                           <div>
                             <label style={lbl}>N° de Factura</label>
@@ -1138,11 +1166,18 @@ function PanelAdmin({ user }) {
                         <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
                           <button style={{ ...btn("ghost"), padding: "10px 20px" }} onClick={() => setEditando(null)}>Cancelar</button>
                           <button style={{ ...btn("primary"), padding: "10px 24px" }} onClick={async () => {
-                            await update(editando.id, {
+                            const updateData = {
                               nroFactura: editando.nroFactura,
                               estadoAdmin: editando.estadoAdmin,
                               entregado: editando.entregado,
-                            });
+                            };
+                            if (editando.canal === "BAJAS" && editando.autorizarBaja) {
+                              const orig = pedidos.find(x => x.id === editando.id);
+                              if (!orig?.autorizarBaja) {
+                                updateData.autorizarBaja = editando.autorizarBaja;
+                              }
+                            }
+                            await update(editando.id, updateData);
                             setEditando(null);
                           }}>Guardar cambios</button>
                         </div>
