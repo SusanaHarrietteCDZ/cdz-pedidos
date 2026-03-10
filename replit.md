@@ -26,6 +26,8 @@ public/             — Static assets
 - Order entry form (FormVendedor) with product catalog and payment method selection
 - "BAJAS" channel option: disables payment/cobro fields, shows "Tipo de Baja de Producto" dropdown (Bonificación, Muestra, Degustación)
 - Admin panel (PanelAdmin) with real-time Firestore updates, filtering, and status management
+- User roles: `admin` (full access), `comm` (admin panel without factura access), `vendedor` (order form)
+- Admin authorization fields: "Autorizar Baja" (for BAJAS orders), "Autorizar Crédito" (for credit orders) — one-time modifiable
 - Excel export via `xlsx` library
 - Image upload for receipts via Firebase Storage
 

@@ -865,7 +865,7 @@ function PanelVendedor({ user, vendedorNombre }) {
 }
 
 // ─── PANEL ADMIN ────────────────────────────────────────────────────
-function PanelAdmin({ user }) {
+function PanelAdmin({ user, role }) {
   const [pedidos, setPedidos] = useState([]);
   const [filtroVendedor, setFiltroVendedor] = useState("Todos");
   const [filtroEstado, setFiltroEstado] = useState("Todos");
@@ -1187,7 +1187,7 @@ function PanelAdmin({ user }) {
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
                           <div>
                             <label style={lbl}>N° de Factura</label>
-                            <input style={inp} value={editando.nroFactura || ""} onChange={e => setEditando(x => ({ ...x, nroFactura: e.target.value }))} placeholder="Ej: FAC-001234" />
+                            <input style={{ ...inp, opacity: role === "comm" ? 0.4 : 1 }} value={editando.nroFactura || ""} onChange={e => { if (role !== "comm") setEditando(x => ({ ...x, nroFactura: e.target.value })); }} placeholder={role === "comm" ? "Sin acceso" : "Ej: FAC-001234"} disabled={role === "comm"} />
                           </div>
                           <div>
                             <label style={lbl}>Estado Admin</label>
@@ -1371,6 +1371,7 @@ export default function App() {
   );
 
   if (!user) return <Login />;
-  if (userRole === "admin") return <PanelAdmin user={user} />;
+  if (userRole === "admin") return <PanelAdmin user={user} role="admin" />;
+  if (userRole === "comm") return <PanelAdmin user={user} role="comm" />;
   return <FormVendedor user={user} vendedorNombre={vendedorNombre} />;
 }
