@@ -1133,6 +1133,10 @@ function PanelAdmin({ user, role }) {
                                   </span>
                                   <span style={{ fontSize: 11, color: C.textMuted, marginLeft: 8 }}>(ya gestionada, no se puede modificar)</span>
                                 </div>
+                              ) : role === "finan" ? (
+                                <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
+                                  <span style={{ fontSize: 11, color: C.textMuted }}>(sin acceso para autorizar baja)</span>
+                                </div>
                               ) : (
                                 <select style={sel} value={editando.autorizarBaja || ""} onChange={e => setEditando(x => ({ ...x, autorizarBaja: e.target.value }))}>
                                   <option value="">— Seleccionar —</option>
