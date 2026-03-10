@@ -1161,6 +1161,10 @@ function PanelAdmin({ user, role }) {
                                   </div>
                                   <div style={{ fontSize: 12, color: C.textSub }}>Días de crédito: <b style={{ color: C.gold }}>{original.diasCreditoAdmin || original.diasCredito || "—"}</b></div>
                                 </div>
+                              ) : role === "finan" ? (
+                                <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
+                                  <span style={{ fontSize: 11, color: C.textMuted }}>(sin acceso para autorizar crédito)</span>
+                                </div>
                               ) : (
                                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 8 }}>
                                   <div>
@@ -1199,13 +1203,14 @@ function PanelAdmin({ user, role }) {
                         <div style={{ marginBottom: 20 }}>
                           <label style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}>
                             <div
-                              onClick={() => setEditando(x => ({ ...x, entregado: !x.entregado }))}
-                              style={{ width: 50, height: 28, borderRadius: 14, background: editando.entregado ? C.success : "#333", transition: "all 0.2s", position: "relative", cursor: "pointer", flexShrink: 0 }}
+                              onClick={() => { if (role !== "finan") setEditando(x => ({ ...x, entregado: !x.entregado })); }}
+                              style={{ width: 50, height: 28, borderRadius: 14, background: editando.entregado ? C.success : "#333", transition: "all 0.2s", position: "relative", cursor: role === "finan" ? "not-allowed" : "pointer", flexShrink: 0, opacity: role === "finan" ? 0.4 : 1 }}
                             >
                               <div style={{ position: "absolute", top: 4, left: editando.entregado ? 25 : 4, width: 20, height: 20, borderRadius: "50%", background: "#fff", transition: "all 0.2s" }} />
                             </div>
                             <span style={{ fontSize: 15, color: editando.entregado ? C.success : C.textMuted, fontWeight: editando.entregado ? 600 : 400 }}>
                               {editando.entregado ? "✅ Pedido Entregado" : "⏳ Pendiente de Entrega"}
+                              {role === "finan" && <span style={{ fontSize: 11, color: C.textMuted, marginLeft: 8 }}>(sin acceso)</span>}
                             </span>
                           </label>
                         </div>
@@ -1373,5 +1378,6 @@ export default function App() {
   if (!user) return <Login />;
   if (userRole === "admin") return <PanelAdmin user={user} role="admin" />;
   if (userRole === "comm") return <PanelAdmin user={user} role="comm" />;
+  if (userRole === "finan") return <PanelAdmin user={user} role="finan" />;
   return <FormVendedor user={user} vendedorNombre={vendedorNombre} />;
 }
