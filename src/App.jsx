@@ -576,6 +576,8 @@ function PanelVendedor({ user, vendedorNombre }) {
       "Canal": p.canal || "",
       "Tipo de Baja": p.tipoBaja || "",
       "Autorizar Baja": p.autorizarBaja || "",
+      "Autorizar Crédito": p.autorizarCredito || "",
+      "Días Crédito Admin": p.diasCreditoAdmin || "",
       "Productos": (p.lineas || []).map(l => `${l.codigo} x${l.cantidad} ($${l.precio})`).join(" | "),
       "Subtotal Prod.": p.subtotalProductos || 0,
       "Costo Envío": p.costoEnvio || 0,
@@ -703,7 +705,8 @@ function PanelVendedor({ user, vendedorNombre }) {
                       ["NIT", p.nit || "—"],
                       ["Razón Social", p.razonSocial || "—"],
                       ...(p.canal !== "BAJAS" ? [["Forma de Pago", p.formaPago || "—"],
-                      ["Estado Cobro", p.estadoCobro + (p.diasCredito ? ` (${p.diasCredito})` : "")]] : []),
+                      ["Estado Cobro", p.estadoCobro + (p.diasCredito ? ` (${p.diasCredito})` : "")],
+                      ...(p.estadoCobro === "Al Crédito" ? [["Aut. Crédito", (p.autorizarCredito || "Pendiente") + (p.diasCreditoAdmin ? ` (${p.diasCreditoAdmin})` : "")]] : [])] : []),
                       ["Dirección", p.direccion || "—"],
                       ["Día Entrega", p.diaEntrega || "—"],
                       ["Horario Entrega", p.horarioEntrega || "—"],
@@ -901,6 +904,8 @@ function PanelAdmin({ user }) {
       "Canal": p.canal || "",
       "Tipo de Baja": p.tipoBaja || "",
       "Autorizar Baja": p.autorizarBaja || "",
+      "Autorizar Crédito": p.autorizarCredito || "",
+      "Días Crédito Admin": p.diasCreditoAdmin || "",
       "Productos": (p.lineas || []).map(l => `${l.codigo} x${l.cantidad} ($${l.precio})`).join(" | "),
       "Subtotal Prod.": p.subtotalProductos || 0,
       "Costo Envío": p.costoEnvio || 0,
@@ -1032,7 +1037,8 @@ function PanelAdmin({ user }) {
                         ["NIT", p.nit || "—"],
                         ["Razón Social", p.razonSocial || "—"],
                         ...(p.canal !== "BAJAS" ? [["Forma de Pago", p.formaPago || "—"],
-                        ["Estado Cobro", p.estadoCobro + (p.diasCredito ? ` (${p.diasCredito})` : "")]] : []),
+                        ["Estado Cobro", p.estadoCobro + (p.diasCredito ? ` (${p.diasCredito})` : "")],
+                        ...(p.estadoCobro === "Al Crédito" ? [["Aut. Crédito", (p.autorizarCredito || "Pendiente") + (p.diasCreditoAdmin ? ` (${p.diasCreditoAdmin})` : "")]] : [])] : []),
                         ["Dirección", p.direccion || "—"],
                         ["Día Entrega", p.diaEntrega || "—"],
                         ["Horario Entrega", p.horarioEntrega || "—"],
@@ -1138,6 +1144,46 @@ function PanelAdmin({ user }) {
                           );
                         })()}
 
+                        {editando.estadoCobro === "Al Crédito" && (() => {
+                          const original = pedidos.find(x => x.id === editando.id);
+                          const yaGestionada = !!(original && original.autorizarCredito);
+                          return (
+                            <div style={{ marginBottom: 14, background: "#1a1a1a", borderRadius: 10, padding: 14, border: `1px solid ${yaGestionada ? (original.autorizarCredito === "Autorizado" ? C.success : C.danger) : C.gold}` }}>
+                              <label style={{ ...lbl, fontSize: 12, color: C.gold }}>Autorizar Crédito *</label>
+                              {yaGestionada ? (
+                                <div style={{ marginTop: 6 }}>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                                    <span style={{ fontSize: 18 }}>{original.autorizarCredito === "Autorizado" ? "✅" : "❌"}</span>
+                                    <span style={{ fontSize: 15, fontWeight: 700, color: original.autorizarCredito === "Autorizado" ? C.success : C.danger }}>
+                                      {original.autorizarCredito}
+                                    </span>
+                                    <span style={{ fontSize: 11, color: C.textMuted, marginLeft: 8 }}>(ya gestionado, no se puede modificar)</span>
+                                  </div>
+                                  <div style={{ fontSize: 12, color: C.textSub }}>Días de crédito: <b style={{ color: C.gold }}>{original.diasCreditoAdmin || original.diasCredito || "—"}</b></div>
+                                </div>
+                              ) : (
+                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 8 }}>
+                                  <div>
+                                    <label style={{ ...lbl, fontSize: 11 }}>Decisión</label>
+                                    <select style={sel} value={editando.autorizarCredito || ""} onChange={e => setEditando(x => ({ ...x, autorizarCredito: e.target.value }))}>
+                                      <option value="">— Seleccionar —</option>
+                                      <option value="Autorizado">Autorizado</option>
+                                      <option value="Rechazado">Rechazado</option>
+                                    </select>
+                                  </div>
+                                  <div>
+                                    <label style={{ ...lbl, fontSize: 11 }}>Días de Crédito</label>
+                                    <select style={sel} value={editando.diasCreditoAdmin || editando.diasCredito || ""} onChange={e => setEditando(x => ({ ...x, diasCreditoAdmin: e.target.value }))}>
+                                      <option value="">— Seleccionar —</option>
+                                      {DIAS_CREDITO.map(d => <option key={d} value={d}>{d}</option>)}
+                                    </select>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
+
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
                           <div>
                             <label style={lbl}>N° de Factura</label>
@@ -1177,6 +1223,13 @@ function PanelAdmin({ user }) {
                                 updateData.autorizarBaja = editando.autorizarBaja;
                               }
                             }
+                            if (editando.estadoCobro === "Al Crédito" && editando.autorizarCredito) {
+                              const orig = pedidos.find(x => x.id === editando.id);
+                              if (!orig?.autorizarCredito) {
+                                updateData.autorizarCredito = editando.autorizarCredito;
+                                updateData.diasCreditoAdmin = editando.diasCreditoAdmin || editando.diasCredito || "";
+                              }
+                            }
                             await update(editando.id, updateData);
                             setEditando(null);
                           }}>Guardar cambios</button>
@@ -1205,7 +1258,7 @@ function PanelAdmin({ user }) {
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                 <thead>
                   <tr>
-                    {["Fecha", "Vendedor", "Cliente", "Canal", "Productos", "Total", "Pago", "Estado", "Aut. Baja", "Factura", "Entregado", "Fotos", "Acciones"].map(h => (
+                    {["Fecha", "Vendedor", "Cliente", "Canal", "Productos", "Total", "Pago", "Estado", "Aut. Baja", "Aut. Crédito", "Factura", "Entregado", "Fotos", "Acciones"].map(h => (
                       <th key={h} style={{ padding: "10px 12px", textAlign: "left", borderBottom: `1px solid #2a2a2a`, color: C.textMuted, fontSize: 10, textTransform: "uppercase", letterSpacing: 0.8, whiteSpace: "nowrap" }}>{h}</th>
                     ))}
                   </tr>
@@ -1233,6 +1286,15 @@ function PanelAdmin({ user }) {
                         {p.canal === "BAJAS" ? (
                           <span style={{ fontSize: 11, fontWeight: 700, color: p.autorizarBaja === "Autorizada" ? C.success : p.autorizarBaja === "Rechazada" ? C.danger : C.textMuted }}>
                             {p.autorizarBaja || "Pendiente"}
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: 11, color: C.textMuted }}>—</span>
+                        )}
+                      </td>
+                      <td style={{ padding: "11px 12px" }}>
+                        {p.estadoCobro === "Al Crédito" ? (
+                          <span style={{ fontSize: 11, fontWeight: 700, color: p.autorizarCredito === "Autorizado" ? C.success : p.autorizarCredito === "Rechazado" ? C.danger : C.textMuted }}>
+                            {p.autorizarCredito || "Pendiente"}
                           </span>
                         ) : (
                           <span style={{ fontSize: 11, color: C.textMuted }}>—</span>
