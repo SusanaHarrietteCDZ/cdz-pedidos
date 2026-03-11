@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { initializeApp } from "firebase/app";
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult } from "firebase/auth";
 import { getFirestore, collection, addDoc, updateDoc, doc, onSnapshot, query, orderBy, where, serverTimestamp, getDoc, setDoc } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import * as XLSX from "xlsx";
@@ -19,7 +19,7 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 const googleProvider = new GoogleAuthProvider();
-googleProvider.setCustomParameters({ prompt: "select_account", hd: "crucedelzorro.com" });
+googleProvider.setCustomParameters({ prompt: "select_account" });
 
 // ─── Usuarios / Vendedores ──────────────────────────────────────────
 const VENDEDORES = {
@@ -102,6 +102,10 @@ function Login() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
+  useEffect(() => {
+    getRedirectResult(auth).catch(() => {});
+  }, []);
+
   const doLogin = async () => {
     setErr(""); setLoading(true);
     try { await signInWithEmailAndPassword(auth, email, pass); }
@@ -112,16 +116,15 @@ function Login() {
   const doGoogleLogin = async () => {
     setErr(""); setGoogleLoading(true);
     try {
-      const result = await signInWithPopup(auth, googleProvider);
-      if (!result.user.email?.endsWith("@crucedelzorro.com")) {
-        await signOut(auth);
-        setErr("Solo se permiten cuentas @crucedelzorro.com");
-      }
+      await signInWithPopup(auth, googleProvider);
     }
     catch (e) {
-      if (e.code === "auth/popup-closed-by-user" || e.code === "auth/cancelled-popup-request") {
-      } else if (e.code === "auth/popup-blocked") {
-        setErr("El navegador bloqueó la ventana emergente. Permití los popups e intentá de nuevo.");
+      if (e.code === "auth/popup-blocked" || e.code === "auth/cancelled-popup-request") {
+        try {
+          await signInWithRedirect(auth, googleProvider);
+          return;
+        } catch { setErr("Error al iniciar sesión con Google."); }
+      } else if (e.code === "auth/popup-closed-by-user") {
       } else if (e.code === "auth/account-exists-with-different-credential") {
         setErr("Ya existe una cuenta con este email usando otro método de inicio de sesión.");
       } else {
